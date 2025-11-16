@@ -11,6 +11,7 @@ export interface VSToolArgs {
 }
 export declare class VSTools {
     private defaultVSPrompt;
+    private evaluator;
     private tools;
     getTools(): Tool[];
     hasTool(name: string): boolean;

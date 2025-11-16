@@ -11,20 +11,24 @@ This MCP server provides tools to automatically inject VS prompts into these int
 ## Features
 
 ### VS Injection Tools (3 tools)
+
 - **Subagent Injection**: Inject VS prompts into subagent calls
 - **Command Injection**: Inject VS prompts into command executions
 - **Skill Injection**: Inject VS prompts into skill usage
 
 ### VS Evaluation Tools (3 tools)
+
 - **Response Evaluation**: Evaluate responses using VS criteria
 - **Best Response Selection**: Select optimal responses from multiple options
 - **Methodology Validation**: Validate VS methodology compliance
 
 ### VS Generation Tools (2 tools)
+
 - **Sample Generation**: Generate multiple response samples for comparison
 - **Chain Evaluation**: Complete VS workflow (inject → generate → evaluate → select)
 
 ### Configuration Tools (2 tools)
+
 - **Prompt Configuration**: Customize the default VS prompt
 - **Prompt Retrieval**: Get the current VS prompt configuration
 
@@ -52,12 +56,32 @@ npm start
 ### Basic Usage
 
 ```bash
-# Start the server
+# Start the server (Node)
 npm start
+
+# Start the server (Bun)
+npm run start:bun
 
 # Run the demo
 npm run demo
 ```
+
+### MCP Inspector
+
+```bash
+# Run MCP Inspector with Bun (default)
+npm run inspect
+
+# Run MCP Inspector with Node
+npm run inspect:node
+```
+
+Once Inspector is running, connect using the stdio transport. You can then:
+
+- List tools and explore their input schemas
+- Call `vs_get_prompt` to inspect the current VS methodology prompt
+- Use `vs_inject_subagent`, `vs_inject_command`, and `vs_inject_skill` to wrap subagent, command, and skill flows
+- Run `vs_chain_evaluation` for an end-to-end VS workflow (inject → generate → evaluate → select)
 
 ### MCP Integration
 
@@ -79,9 +103,11 @@ Add to your MCP client configuration:
 ### VS Injection Tools
 
 #### vs_inject_subagent
+
 Injects VS prompts into subagent calls.
 
 **Parameters:**
+
 - `subagent` (string, required): Name/identifier of the subagent
 - `task` (string, required): Task to be performed
 - `context` (string, optional): Background context
@@ -89,9 +115,11 @@ Injects VS prompts into subagent calls.
 - `customPrompt` (string, optional): Custom VS prompt
 
 #### vs_inject_command
+
 Injects VS prompts into command executions.
 
 **Parameters:**
+
 - `command` (string, required): Command to execute
 - `purpose` (string, required): Expected outcome
 - `context` (string, optional): Execution context
@@ -99,9 +127,11 @@ Injects VS prompts into command executions.
 - `customPrompt` (string, optional): Custom VS prompt
 
 #### vs_inject_skill
+
 Injects VS prompts into skill usage.
 
 **Parameters:**
+
 - `skill` (string, required): Skill name/identifier
 - `objective` (string, required): Objective to achieve
 - `context` (string, optional): Usage constraints
@@ -111,43 +141,53 @@ Injects VS prompts into skill usage.
 ### VS Evaluation Tools
 
 #### vs_evaluate_response
+
 Evaluate a response using Verbalized Sampling criteria.
 
 **Parameters:**
+
 - `response` (string, required): The response to evaluate
 - `criteria` (array, optional): Evaluation criteria to apply
 - `context` (string, optional): Context for evaluation
 
 #### vs_select_best_response
+
 Select the best response from multiple options using VS methodology.
 
 **Parameters:**
+
 - `responses` (array, required): Array of responses to evaluate
 - `criteria` (array, optional): Selection criteria to apply
 - `context` (string, optional): Context for selection
 
 #### vs_validate_methodology
+
 Validate that a response follows proper VS methodology.
 
 **Parameters:**
+
 - `response` (string, required): The response to validate
 - `expectedElements` (array, optional): Expected VS methodology elements
 
 ### VS Generation Tools
 
 #### vs_generate_samples
+
 Generate multiple response samples for comparison.
 
 **Parameters:**
+
 - `prompt` (string, required): The prompt to generate samples for
 - `numSamples` (number, optional): Number of samples to generate (default: 3)
 - `context` (string, optional): Context for generation
 - `parameters` (object, optional): Additional parameters
 
 #### vs_chain_evaluation
+
 Chain multiple VS operations: inject prompt, generate samples, evaluate, and select best.
 
 **Parameters:**
+
 - `operation` (string, required): Type of operation ("subagent", "command", "skill")
 - `target` (string, required): Target name/identifier
 - `task` (string, required): Task to be performed
@@ -159,12 +199,15 @@ Chain multiple VS operations: inject prompt, generate samples, evaluate, and sel
 ### VS Configuration Tools
 
 #### vs_configure_prompt
+
 Configure the default VS prompt.
 
 **Parameters:**
+
 - `prompt` (string, required): New default VS prompt
 
 #### vs_get_prompt
+
 Get the current default VS prompt.
 
 **Parameters:** None
@@ -174,21 +217,25 @@ Get the current default VS prompt.
 The server implements Verbalized Sampling (VS) methodology following our comprehensive global development rules. The VS prompt incorporates:
 
 ### Core Principles (Severity: Error)
+
 - **TDD Workflow**: Tests first, implement after, verify behavior
 - **Security**: Never commit secrets, validate inputs, least privilege
 - **Bug Fixes**: Analyze root cause, targeted solutions, thorough testing
 
 ### Quality Standards (Severity: Warning)
+
 - **Code Simplicity**: Readable, maintainable, focused functions (10-30 lines)
 - **Testing**: AAA pattern, comprehensive coverage, mock dependencies
 - **Documentation**: Current README, API docs, usage examples
 
 ### Compliance Requirements
+
 - **Accessibility**: WCAG 2.2 AA, keyboard navigation, screen reader support
 - **Performance**: Profile before optimizing, lazy loading, Core Web Vitals
 - **Package Management**: Standard managers, lock files, security audits
 
 ### Default VS Prompt
+
 ```
 You are using Verbalized Sampling (VS) methodology following our global development rules. When working with subagents, commands, or skills, always:
 
@@ -249,6 +296,7 @@ Request Confirmation: Please acknowledge that you understand this VS methodology
 ## Example Usage
 
 ### Subagent Injection
+
 ```javascript
 // Before: Direct subagent call
 callSubagent("code-reviewer", { file: "auth.js" });
@@ -258,12 +306,13 @@ const vsPrompt = await mcp.callTool("vs_inject_subagent", {
   subagent: "code-reviewer",
   task: "Review authentication logic for security vulnerabilities",
   context: "Critical security component handling user login",
-  parameters: { file: "auth.js", focus: "security", strict: true }
+  parameters: { file: "auth.js", focus: "security", strict: true },
 });
 // Result includes full VS prompt with confirmation requirements
 ```
 
 ### Command Injection
+
 ```javascript
 // Before: Direct command execution
 runCommand("npm test");
@@ -273,7 +322,7 @@ const vsPrompt = await mcp.callTool("vs_inject_command", {
   command: "npm test",
   purpose: "Verify code quality and prevent regressions",
   context: "Pre-deployment validation in CI/CD pipeline",
-  parameters: { coverage: true, verbose: true }
+  parameters: { coverage: true, verbose: true },
 });
 ```
 

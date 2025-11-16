@@ -27,7 +27,7 @@ class VerbalizedSamplingMcpServer {
         capabilities: {
           tools: {},
         },
-      }
+      },
     );
 
     this.setupToolHandlers();
@@ -49,9 +49,22 @@ class VerbalizedSamplingMcpServer {
           throw error;
         }
 
+        const message =
+          error instanceof Error
+            ? error.message
+            : String(error ?? "Unknown error");
+
+        // Unknown tool errors are treated as InvalidParams to surface clearer feedback
+        if (message.startsWith("Unknown VS tool")) {
+          throw new McpError(
+            ErrorCode.InvalidParams,
+            `Unknown tool: ${message.replace("Unknown VS tool: ", "")}`,
+          );
+        }
+
         throw new McpError(
           ErrorCode.InternalError,
-          `Tool execution failed: ${error instanceof Error ? error.message : String(error)}`
+          `Tool execution failed: ${message}`,
         );
       }
     });

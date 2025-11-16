@@ -9,13 +9,15 @@ import { spawn } from "child_process";
 import * as path from "path";
 
 async function testMcpProtocol() {
-  console.log("🧪 Testing Verbalized Sampling MCP Server with MCP Protocol...\n");
+  console.log(
+    "🧪 Testing Verbalized Sampling MCP Server with MCP Protocol...\n",
+  );
 
   // Start the MCP server
   const serverPath = path.join(process.cwd(), "dist", "index.js");
   const serverProcess = spawn("node", [serverPath], {
     stdio: ["pipe", "pipe", "pipe"],
-    cwd: process.cwd()
+    cwd: process.cwd(),
   });
 
   let responseBuffer = "";
@@ -28,7 +30,7 @@ async function testMcpProtocol() {
         jsonrpc: "2.0",
         id: requestId++,
         method,
-        params
+        params,
       };
 
       serverProcess.stdin!.write(JSON.stringify(request) + "\n");
@@ -77,7 +79,7 @@ async function testMcpProtocol() {
     // Test 2: Get current prompt
     console.log("\n📝 Testing get prompt...");
     const promptResponse = await sendRequest("tools/call", {
-      name: "vs_get_prompt"
+      name: "vs_get_prompt",
     });
     console.log("✅ Current prompt retrieved successfully");
 
@@ -88,8 +90,8 @@ async function testMcpProtocol() {
       arguments: {
         subagent: "test-agent",
         task: "Test the VS injection functionality",
-        context: "Development testing environment"
-      }
+        context: "Development testing environment",
+      },
     });
     console.log("✅ Subagent injection successful");
 
@@ -98,15 +100,33 @@ async function testMcpProtocol() {
     const evalResponse = await sendRequest("tools/call", {
       name: "vs_evaluate_response",
       arguments: {
-        response: "I will analyze the code and provide feedback on best practices.",
-        criteria: ["clarity", "specificity", "actionability"]
-      }
+        response:
+          "I will analyze the code and provide feedback on best practices.",
+        criteria: ["clarity", "specificity", "actionability"],
+      },
     });
     console.log("✅ Response evaluation successful");
 
-    console.log("\n🎉 All MCP protocol tests passed!");
-    console.log("✅ Server is ready for integration with OpenCode and Claude Code!");
+    // Test 5: Unknown tool error handling
+    console.log("\n⚠️ Testing unknown tool error handling...");
+    const unknownToolResponse = await sendRequest("tools/call", {
+      name: "vs_unknown_tool",
+      arguments: {},
+    });
+    if (
+      !unknownToolResponse.error ||
+      unknownToolResponse.error.code === undefined
+    ) {
+      throw new Error("Expected an error response for unknown tool");
+    }
+    console.log(
+      `✅ Unknown tool error surfaced correctly (code: ${unknownToolResponse.error.code})`,
+    );
 
+    console.log("\n🎉 All MCP protocol tests passed!");
+    console.log(
+      "✅ Server is ready for integration with OpenCode and Claude Code!",
+    );
   } catch (error) {
     console.error("❌ Test failed:", error);
   } finally {

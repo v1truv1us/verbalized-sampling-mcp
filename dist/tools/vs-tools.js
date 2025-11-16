@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.VSTools = void 0;
+const vs_evaluator_js_1 = require("./vs-evaluator.js");
 class VSTools {
     // Default Verbalized Sampling prompt - based on global development rules
     defaultVSPrompt = `You are using Verbalized Sampling (VS) methodology following our global development rules. When working with subagents, commands, or skills, always:
@@ -57,6 +58,7 @@ class VSTools {
 33. **Monitor Core Web Vitals** - Track LCP, FID, CLS for web apps
 
 **Request Confirmation:** Please acknowledge that you understand this VS methodology and global development rules before proceeding with any operations.`;
+    evaluator = new vs_evaluator_js_1.VSEvaluator();
     tools = [
         {
             name: "vs_inject_subagent",
@@ -232,6 +234,7 @@ class VSTools {
                         description: "Number of samples to generate (default: 3)",
                         minimum: 1,
                         maximum: 10,
+                        default: 3,
                     },
                     context: {
                         type: "string",
@@ -311,7 +314,7 @@ class VSTools {
         return this.tools;
     }
     hasTool(name) {
-        return this.tools.some(tool => tool.name === name);
+        return this.tools.some((tool) => tool.name === name);
     }
     async handleTool(name, args) {
         switch (name) {
@@ -345,15 +348,17 @@ class VSTools {
 
 **SUBAGENT CALL: ${args.subagent}**
 **TASK:** ${args.task}
-${args.context ? `**CONTEXT:** ${args.context}` : ''}
-${args.parameters ? `**PARAMETERS:** ${JSON.stringify(args.parameters, null, 2)}` : ''}
+${args.context ? `**CONTEXT:** ${args.context}` : ""}
+${args.parameters ? `**PARAMETERS:** ${JSON.stringify(args.parameters, null, 2)}` : ""}
 
 **CONFIRMATION REQUIRED:** Please acknowledge that you understand this task and the VS methodology before proceeding.`;
         return {
-            content: [{
+            content: [
+                {
                     type: "text",
                     text: injectedPrompt,
-                }],
+                },
+            ],
         };
     }
     async vsInjectCommand(args) {
@@ -362,15 +367,17 @@ ${args.parameters ? `**PARAMETERS:** ${JSON.stringify(args.parameters, null, 2)}
 
 **COMMAND EXECUTION: ${args.command}**
 **PURPOSE:** ${args.purpose}
-${args.context ? `**CONTEXT:** ${args.context}` : ''}
-${args.parameters ? `**PARAMETERS:** ${JSON.stringify(args.parameters, null, 2)}` : ''}
+${args.context ? `**CONTEXT:** ${args.context}` : ""}
+${args.parameters ? `**PARAMETERS:** ${JSON.stringify(args.parameters, null, 2)}` : ""}
 
 **CONFIRMATION REQUIRED:** Please acknowledge that you understand this command execution and the VS methodology before proceeding.`;
         return {
-            content: [{
+            content: [
+                {
                     type: "text",
                     text: injectedPrompt,
-                }],
+                },
+            ],
         };
     }
     async vsInjectSkill(args) {
@@ -379,32 +386,38 @@ ${args.parameters ? `**PARAMETERS:** ${JSON.stringify(args.parameters, null, 2)}
 
 **SKILL USAGE: ${args.skill}**
 **OBJECTIVE:** ${args.objective}
-${args.context ? `**CONTEXT:** ${args.context}` : ''}
-${args.parameters ? `**PARAMETERS:** ${JSON.stringify(args.parameters, null, 2)}` : ''}
+${args.context ? `**CONTEXT:** ${args.context}` : ""}
+${args.parameters ? `**PARAMETERS:** ${JSON.stringify(args.parameters, null, 2)}` : ""}
 
 **CONFIRMATION REQUIRED:** Please acknowledge that you understand this skill usage and the VS methodology before proceeding.`;
         return {
-            content: [{
+            content: [
+                {
                     type: "text",
                     text: injectedPrompt,
-                }],
+                },
+            ],
         };
     }
     async vsConfigurePrompt(args) {
         this.defaultVSPrompt = args.prompt;
         return {
-            content: [{
+            content: [
+                {
                     type: "text",
                     text: `Verbalized Sampling prompt has been updated successfully.`,
-                }],
+                },
+            ],
         };
     }
     async vsGetPrompt(args) {
         return {
-            content: [{
+            content: [
+                {
                     type: "text",
                     text: `Current Verbalized Sampling prompt:\n\n${this.defaultVSPrompt}`,
-                }],
+                },
+            ],
         };
     }
     async vsEvaluateResponse(args) {
@@ -416,32 +429,30 @@ ${args.parameters ? `**PARAMETERS:** ${JSON.stringify(args.parameters, null, 2)}
             "Documentation Quality",
             "Accessibility Compliance",
             "Performance Considerations",
-            "Package Management Standards"
+            "Package Management Standards",
         ];
-        // Simulate evaluation (in a real implementation, this might call an LLM)
-        const evaluation = criteria.map(criterion => {
-            const score = Math.floor(Math.random() * 5) + 1; // 1-5 score
-            return `${criterion}: ${score}/5`;
-        }).join('\n');
-        const overallScore = criteria.reduce((sum, _, i) => {
-            return sum + (Math.floor(Math.random() * 5) + 1);
-        }, 0) / criteria.length;
+        const { results, overall } = this.evaluator.evaluateResponse(args.response, criteria);
+        const evaluation = results
+            .map((r) => `${r.criterion}: ${r.score}/5`)
+            .join("\n");
         return {
-            content: [{
+            content: [
+                {
                     type: "text",
-                    text: `VS Response Evaluation:\n\nResponse: "${args.response.substring(0, 100)}${args.response.length > 100 ? '...' : ''}"\n\nEvaluation Criteria:\n${evaluation}\n\nOverall Score: ${overallScore.toFixed(1)}/5\n\n${args.context ? `Context: ${args.context}\n\n` : ''}Recommendation: ${overallScore >= 4 ? 'High quality response following VS methodology' : overallScore >= 3 ? 'Acceptable response with room for improvement' : 'Response needs significant improvement in VS methodology adherence'}`,
-                }],
+                    text: `VS Response Evaluation:\n\nResponse: "${args.response.substring(0, 100)}${args.response.length > 100 ? "..." : ""}"\n\nEvaluation Criteria:\n${evaluation}\n\nOverall Score: ${overall.toFixed(1)}/5\n\n${args.context ? `Context: ${args.context}\n\n` : ""}Recommendation: ${overall >= 4 ? "High quality response following VS methodology" : overall >= 3 ? "Acceptable response with room for improvement" : "Response needs significant improvement in VS methodology adherence"}`,
+                },
+            ],
         };
     }
     async vsSelectBestResponse(args) {
         if (!args.responses || args.responses.length === 0) {
-            throw new Error('At least one response is required');
+            throw new Error("At least one response is required");
         }
         const criteria = args.criteria || [
             "Clarity and precision",
             "Contextual alignment",
             "Completeness of solution",
-            "VS methodology adherence"
+            "VS methodology adherence",
         ];
         // Simulate selection process (in real implementation, this would use more sophisticated evaluation)
         const evaluations = args.responses.map((response, index) => {
@@ -453,10 +464,12 @@ ${args.parameters ? `**PARAMETERS:** ${JSON.stringify(args.parameters, null, 2)}
         evaluations.sort((a, b) => b.score - a.score);
         const bestResponse = evaluations[0];
         return {
-            content: [{
+            content: [
+                {
                     type: "text",
-                    text: `VS Response Selection Results:\n\nBest Response (Score: ${bestResponse.score.toFixed(1)}/5):\n"${bestResponse.response}"\n\nEvaluation Summary:\n${evaluations.map((e, i) => `${i + 1}. Response ${e.index + 1}: ${e.score.toFixed(1)}/5`).join('\n')}\n\nSelection Criteria: ${criteria.join(', ')}\n${args.context ? `\nContext: ${args.context}` : ''}`,
-                }],
+                    text: `VS Response Selection Results:\n\nBest Response (Score: ${bestResponse.score.toFixed(1)}/5):\n"${bestResponse.response}"\n\nEvaluation Summary:\n${evaluations.map((e, i) => `${i + 1}. Response ${e.index + 1}: ${e.score.toFixed(1)}/5`).join("\n")}\n\nSelection Criteria: ${criteria.join(", ")}\n${args.context ? `\nContext: ${args.context}` : ""}`,
+                },
+            ],
         };
     }
     async vsGenerateSamples(args) {
@@ -467,10 +480,12 @@ ${args.parameters ? `**PARAMETERS:** ${JSON.stringify(args.parameters, null, 2)}
             samples.push(`Sample ${i + 1}: ${args.prompt} - Variation ${i + 1} with different approach and perspective.`);
         }
         return {
-            content: [{
+            content: [
+                {
                     type: "text",
-                    text: `Generated ${numSamples} VS Response Samples:\n\n${samples.map((sample, i) => `${i + 1}. ${sample}`).join('\n\n')}\n\nOriginal Prompt: ${args.prompt}\n${args.context ? `Context: ${args.context}\n` : ''}${args.parameters ? `Parameters: ${JSON.stringify(args.parameters, null, 2)}` : ''}`,
-                }],
+                    text: `Generated ${numSamples} VS Response Samples:\n\n${samples.map((sample, i) => `${i + 1}. ${sample}`).join("\n\n")}\n\nOriginal Prompt: ${args.prompt}\n${args.context ? `Context: ${args.context}\n` : ""}${args.parameters ? `Parameters: ${JSON.stringify(args.parameters, null, 2)}` : ""}`,
+                },
+            ],
         };
     }
     async vsChainEvaluation(args) {
@@ -480,34 +495,34 @@ ${args.parameters ? `**PARAMETERS:** ${JSON.stringify(args.parameters, null, 2)}
             "Clarity of communication",
             "Task alignment",
             "Parameter specificity",
-            "VS methodology adherence"
+            "VS methodology adherence",
         ];
         // Step 1: Inject VS prompt
-        let injectedPrompt = '';
-        if (operation === 'subagent') {
+        let injectedPrompt = "";
+        if (operation === "subagent") {
             const result = await this.vsInjectSubagent({
                 subagent: args.target,
                 task: args.task,
                 context: args.context,
-                parameters: args.parameters
+                parameters: args.parameters,
             });
             injectedPrompt = result.content[0].text;
         }
-        else if (operation === 'command') {
+        else if (operation === "command") {
             const result = await this.vsInjectCommand({
                 command: args.target,
                 purpose: args.task,
                 context: args.context,
-                parameters: args.parameters
+                parameters: args.parameters,
             });
             injectedPrompt = result.content[0].text;
         }
-        else if (operation === 'skill') {
+        else if (operation === "skill") {
             const result = await this.vsInjectSkill({
                 skill: args.target,
                 objective: args.task,
                 context: args.context,
-                parameters: args.parameters
+                parameters: args.parameters,
             });
             injectedPrompt = result.content[0].text;
         }
@@ -515,20 +530,28 @@ ${args.parameters ? `**PARAMETERS:** ${JSON.stringify(args.parameters, null, 2)}
         const samplesResult = await this.vsGenerateSamples({
             prompt: injectedPrompt,
             numSamples: numSamples,
-            context: args.context
+            context: args.context,
         });
         // Step 3: Evaluate and select best
-        const sampleTexts = samplesResult.content[0].text.split('\n\n').filter(line => line.startsWith('Sample ') || line.startsWith('1. ') || line.startsWith('2. ') || line.startsWith('3. ')).map(line => line.replace(/^\d+\.\s*/, '').replace(/^Sample \d+:\s*/, ''));
+        const sampleTexts = samplesResult.content[0].text
+            .split("\n\n")
+            .filter((line) => line.startsWith("Sample ") ||
+            line.startsWith("1. ") ||
+            line.startsWith("2. ") ||
+            line.startsWith("3. "))
+            .map((line) => line.replace(/^\d+\.\s*/, "").replace(/^Sample \d+:\s*/, ""));
         const selectionResult = await this.vsSelectBestResponse({
             responses: sampleTexts,
             criteria: criteria,
-            context: args.context
+            context: args.context,
         });
         return {
-            content: [{
+            content: [
+                {
                     type: "text",
                     text: `VS Chain Evaluation Complete:\n\n1. INJECTED PROMPT:\n${injectedPrompt}\n\n2. GENERATED SAMPLES:\n${samplesResult.content[0].text}\n\n3. BEST RESPONSE SELECTION:\n${selectionResult.content[0].text}\n\nChain completed successfully using VS methodology.`,
-                }],
+                },
+            ],
         };
     }
     async vsValidateMethodology(args) {
@@ -541,19 +564,23 @@ ${args.parameters ? `**PARAMETERS:** ${JSON.stringify(args.parameters, null, 2)}
             "Documentation updates",
             "Accessibility compliance",
             "Performance implications",
-            "Package management standards"
+            "Package management standards",
         ];
         // Simulate validation (in real implementation, this would analyze the response)
-        const validationResults = expectedElements.map(element => {
+        const validationResults = expectedElements.map((element) => {
             const present = Math.random() > 0.3; // 70% chance of being present
-            return `${element}: ${present ? '✓ Present' : '✗ Missing'}`;
+            return `${element}: ${present ? "✓ Present" : "✗ Missing"}`;
         });
-        const complianceScore = validationResults.filter(r => r.includes('✓ Present')).length / expectedElements.length * 100;
+        const complianceScore = (validationResults.filter((r) => r.includes("✓ Present")).length /
+            expectedElements.length) *
+            100;
         return {
-            content: [{
+            content: [
+                {
                     type: "text",
-                    text: `VS Methodology Validation:\n\nResponse: "${args.response.substring(0, 150)}${args.response.length > 150 ? '...' : ''}"\n\nValidation Results:\n${validationResults.join('\n')}\n\nCompliance Score: ${complianceScore.toFixed(1)}%\n\n${complianceScore >= 80 ? '✅ High compliance with VS methodology' : complianceScore >= 60 ? '⚠️ Moderate compliance - some improvements needed' : '❌ Low compliance - significant VS methodology gaps'}`,
-                }],
+                    text: `VS Methodology Validation:\n\nResponse: "${args.response.substring(0, 150)}${args.response.length > 150 ? "..." : ""}"\n\nValidation Results:\n${validationResults.join("\n")}\n\nCompliance Score: ${complianceScore.toFixed(1)}%\n\n${complianceScore >= 80 ? "✅ High compliance with VS methodology" : complianceScore >= 60 ? "⚠️ Moderate compliance - some improvements needed" : "❌ Low compliance - significant VS methodology gaps"}`,
+                },
+            ],
         };
     }
 }

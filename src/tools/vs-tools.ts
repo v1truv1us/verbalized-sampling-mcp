@@ -1,4 +1,5 @@
 import { Tool } from "@modelcontextprotocol/sdk/types.js";
+import { VSEvaluator } from "./vs-evaluator.js";
 
 export interface VSToolArgs {
   prompt?: string;
@@ -68,6 +69,8 @@ export class VSTools {
 
 **Request Confirmation:** Please acknowledge that you understand this VS methodology and global development rules before proceeding with any operations.`;
 
+  private evaluator = new VSEvaluator();
+
   private tools: Tool[] = [
     {
       name: "vs_inject_subagent",
@@ -93,7 +96,8 @@ export class VSTools {
           },
           customPrompt: {
             type: "string",
-            description: "Custom VS prompt to use (optional, uses default if not provided)",
+            description:
+              "Custom VS prompt to use (optional, uses default if not provided)",
           },
         },
         required: ["subagent", "task"],
@@ -123,7 +127,8 @@ export class VSTools {
           },
           customPrompt: {
             type: "string",
-            description: "Custom VS prompt to use (optional, uses default if not provided)",
+            description:
+              "Custom VS prompt to use (optional, uses default if not provided)",
           },
         },
         required: ["command", "purpose"],
@@ -153,7 +158,8 @@ export class VSTools {
           },
           customPrompt: {
             type: "string",
-            description: "Custom VS prompt to use (optional, uses default if not provided)",
+            description:
+              "Custom VS prompt to use (optional, uses default if not provided)",
           },
         },
         required: ["skill", "objective"],
@@ -206,7 +212,8 @@ export class VSTools {
     },
     {
       name: "vs_select_best_response",
-      description: "Select the best response from multiple options using VS methodology",
+      description:
+        "Select the best response from multiple options using VS methodology",
       inputSchema: {
         type: "object",
         properties: {
@@ -243,6 +250,7 @@ export class VSTools {
             description: "Number of samples to generate (default: 3)",
             minimum: 1,
             maximum: 10,
+            default: 3,
           },
           context: {
             type: "string",
@@ -258,7 +266,8 @@ export class VSTools {
     },
     {
       name: "vs_chain_evaluation",
-      description: "Chain multiple VS operations: inject prompt, generate samples, evaluate, and select best",
+      description:
+        "Chain multiple VS operations: inject prompt, generate samples, evaluate, and select best",
       inputSchema: {
         type: "object",
         properties: {
@@ -285,7 +294,8 @@ export class VSTools {
           },
           numSamples: {
             type: "number",
-            description: "Number of samples to generate for evaluation (default: 3)",
+            description:
+              "Number of samples to generate for evaluation (default: 3)",
             minimum: 1,
             maximum: 5,
           },
@@ -324,7 +334,7 @@ export class VSTools {
   }
 
   hasTool(name: string): boolean {
-    return this.tools.some(tool => tool.name === name);
+    return this.tools.some((tool) => tool.name === name);
   }
 
   async handleTool(name: string, args: any) {
@@ -354,81 +364,93 @@ export class VSTools {
     }
   }
 
-  private async vsInjectSubagent(args: VSToolArgs & {
-    subagent: string;
-    task: string;
-    context?: string;
-    parameters?: Record<string, any>;
-    customPrompt?: string;
-  }) {
+  private async vsInjectSubagent(
+    args: VSToolArgs & {
+      subagent: string;
+      task: string;
+      context?: string;
+      parameters?: Record<string, any>;
+      customPrompt?: string;
+    },
+  ) {
     const vsPrompt = args.customPrompt || this.defaultVSPrompt;
 
     const injectedPrompt = `${vsPrompt}
 
 **SUBAGENT CALL: ${args.subagent}**
 **TASK:** ${args.task}
-${args.context ? `**CONTEXT:** ${args.context}` : ''}
-${args.parameters ? `**PARAMETERS:** ${JSON.stringify(args.parameters, null, 2)}` : ''}
+${args.context ? `**CONTEXT:** ${args.context}` : ""}
+${args.parameters ? `**PARAMETERS:** ${JSON.stringify(args.parameters, null, 2)}` : ""}
 
 **CONFIRMATION REQUIRED:** Please acknowledge that you understand this task and the VS methodology before proceeding.`;
 
     return {
-      content: [{
-        type: "text",
-        text: injectedPrompt,
-      }],
+      content: [
+        {
+          type: "text",
+          text: injectedPrompt,
+        },
+      ],
     };
   }
 
-  private async vsInjectCommand(args: VSToolArgs & {
-    command: string;
-    purpose: string;
-    context?: string;
-    parameters?: Record<string, any>;
-    customPrompt?: string;
-  }) {
+  private async vsInjectCommand(
+    args: VSToolArgs & {
+      command: string;
+      purpose: string;
+      context?: string;
+      parameters?: Record<string, any>;
+      customPrompt?: string;
+    },
+  ) {
     const vsPrompt = args.customPrompt || this.defaultVSPrompt;
 
     const injectedPrompt = `${vsPrompt}
 
 **COMMAND EXECUTION: ${args.command}**
 **PURPOSE:** ${args.purpose}
-${args.context ? `**CONTEXT:** ${args.context}` : ''}
-${args.parameters ? `**PARAMETERS:** ${JSON.stringify(args.parameters, null, 2)}` : ''}
+${args.context ? `**CONTEXT:** ${args.context}` : ""}
+${args.parameters ? `**PARAMETERS:** ${JSON.stringify(args.parameters, null, 2)}` : ""}
 
 **CONFIRMATION REQUIRED:** Please acknowledge that you understand this command execution and the VS methodology before proceeding.`;
 
     return {
-      content: [{
-        type: "text",
-        text: injectedPrompt,
-      }],
+      content: [
+        {
+          type: "text",
+          text: injectedPrompt,
+        },
+      ],
     };
   }
 
-  private async vsInjectSkill(args: VSToolArgs & {
-    skill: string;
-    objective: string;
-    context?: string;
-    parameters?: Record<string, any>;
-    customPrompt?: string;
-  }) {
+  private async vsInjectSkill(
+    args: VSToolArgs & {
+      skill: string;
+      objective: string;
+      context?: string;
+      parameters?: Record<string, any>;
+      customPrompt?: string;
+    },
+  ) {
     const vsPrompt = args.customPrompt || this.defaultVSPrompt;
 
     const injectedPrompt = `${vsPrompt}
 
 **SKILL USAGE: ${args.skill}**
 **OBJECTIVE:** ${args.objective}
-${args.context ? `**CONTEXT:** ${args.context}` : ''}
-${args.parameters ? `**PARAMETERS:** ${JSON.stringify(args.parameters, null, 2)}` : ''}
+${args.context ? `**CONTEXT:** ${args.context}` : ""}
+${args.parameters ? `**PARAMETERS:** ${JSON.stringify(args.parameters, null, 2)}` : ""}
 
 **CONFIRMATION REQUIRED:** Please acknowledge that you understand this skill usage and the VS methodology before proceeding.`;
 
     return {
-      content: [{
-        type: "text",
-        text: injectedPrompt,
-      }],
+      content: [
+        {
+          type: "text",
+          text: injectedPrompt,
+        },
+      ],
     };
   }
 
@@ -436,23 +458,33 @@ ${args.parameters ? `**PARAMETERS:** ${JSON.stringify(args.parameters, null, 2)}
     this.defaultVSPrompt = args.prompt;
 
     return {
-      content: [{
-        type: "text",
-        text: `Verbalized Sampling prompt has been updated successfully.`,
-      }],
+      content: [
+        {
+          type: "text",
+          text: `Verbalized Sampling prompt has been updated successfully.`,
+        },
+      ],
     };
   }
 
   private async vsGetPrompt(args: VSToolArgs) {
     return {
-      content: [{
-        type: "text",
-        text: `Current Verbalized Sampling prompt:\n\n${this.defaultVSPrompt}`,
-      }],
+      content: [
+        {
+          type: "text",
+          text: `Current Verbalized Sampling prompt:\n\n${this.defaultVSPrompt}`,
+        },
+      ],
     };
   }
 
-  private async vsEvaluateResponse(args: VSToolArgs & { response: string; criteria?: string[]; context?: string }) {
+  private async vsEvaluateResponse(
+    args: VSToolArgs & {
+      response: string;
+      criteria?: string[];
+      context?: string;
+    },
+  ) {
     const criteria = args.criteria || [
       "TDD Compliance",
       "Security Best Practices",
@@ -461,44 +493,51 @@ ${args.parameters ? `**PARAMETERS:** ${JSON.stringify(args.parameters, null, 2)}
       "Documentation Quality",
       "Accessibility Compliance",
       "Performance Considerations",
-      "Package Management Standards"
+      "Package Management Standards",
     ];
 
-    // Simulate evaluation (in a real implementation, this might call an LLM)
-    const evaluation = criteria.map(criterion => {
-      const score = Math.floor(Math.random() * 5) + 1; // 1-5 score
-      return `${criterion}: ${score}/5`;
-    }).join('\n');
-
-    const overallScore = criteria.reduce((sum, _, i) => {
-      return sum + (Math.floor(Math.random() * 5) + 1);
-    }, 0) / criteria.length;
+    const { results, overall } = this.evaluator.evaluateResponse(
+      args.response,
+      criteria,
+    );
+    const evaluation = results
+      .map((r) => `${r.criterion}: ${r.score}/5`)
+      .join("\n");
 
     return {
-      content: [{
-        type: "text",
-        text: `VS Response Evaluation:\n\nResponse: "${args.response.substring(0, 100)}${args.response.length > 100 ? '...' : ''}"\n\nEvaluation Criteria:\n${evaluation}\n\nOverall Score: ${overallScore.toFixed(1)}/5\n\n${args.context ? `Context: ${args.context}\n\n` : ''}Recommendation: ${overallScore >= 4 ? 'High quality response following VS methodology' : overallScore >= 3 ? 'Acceptable response with room for improvement' : 'Response needs significant improvement in VS methodology adherence'}`,
-      }],
+      content: [
+        {
+          type: "text",
+          text: `VS Response Evaluation:\n\nResponse: "${args.response.substring(0, 100)}${args.response.length > 100 ? "..." : ""}"\n\nEvaluation Criteria:\n${evaluation}\n\nOverall Score: ${overall.toFixed(1)}/5\n\n${args.context ? `Context: ${args.context}\n\n` : ""}Recommendation: ${overall >= 4 ? "High quality response following VS methodology" : overall >= 3 ? "Acceptable response with room for improvement" : "Response needs significant improvement in VS methodology adherence"}`,
+        },
+      ],
     };
   }
 
-  private async vsSelectBestResponse(args: VSToolArgs & { responses: string[]; criteria?: string[]; context?: string }) {
+  private async vsSelectBestResponse(
+    args: VSToolArgs & {
+      responses: string[];
+      criteria?: string[];
+      context?: string;
+    },
+  ) {
     if (!args.responses || args.responses.length === 0) {
-      throw new Error('At least one response is required');
+      throw new Error("At least one response is required");
     }
 
     const criteria = args.criteria || [
       "Clarity and precision",
       "Contextual alignment",
       "Completeness of solution",
-      "VS methodology adherence"
+      "VS methodology adherence",
     ];
 
     // Simulate selection process (in real implementation, this would use more sophisticated evaluation)
     const evaluations = args.responses.map((response, index) => {
-      const score = criteria.reduce((sum, _) => {
-        return sum + (Math.floor(Math.random() * 5) + 1);
-      }, 0) / criteria.length;
+      const score =
+        criteria.reduce((sum, _) => {
+          return sum + (Math.floor(Math.random() * 5) + 1);
+        }, 0) / criteria.length;
       return { index, response, score };
     });
 
@@ -506,72 +545,87 @@ ${args.parameters ? `**PARAMETERS:** ${JSON.stringify(args.parameters, null, 2)}
     const bestResponse = evaluations[0];
 
     return {
-      content: [{
-        type: "text",
-        text: `VS Response Selection Results:\n\nBest Response (Score: ${bestResponse.score.toFixed(1)}/5):\n"${bestResponse.response}"\n\nEvaluation Summary:\n${evaluations.map((e, i) => `${i + 1}. Response ${e.index + 1}: ${e.score.toFixed(1)}/5`).join('\n')}\n\nSelection Criteria: ${criteria.join(', ')}\n${args.context ? `\nContext: ${args.context}` : ''}`,
-      }],
+      content: [
+        {
+          type: "text",
+          text: `VS Response Selection Results:\n\nBest Response (Score: ${bestResponse.score.toFixed(1)}/5):\n"${bestResponse.response}"\n\nEvaluation Summary:\n${evaluations.map((e, i) => `${i + 1}. Response ${e.index + 1}: ${e.score.toFixed(1)}/5`).join("\n")}\n\nSelection Criteria: ${criteria.join(", ")}\n${args.context ? `\nContext: ${args.context}` : ""}`,
+        },
+      ],
     };
   }
 
-  private async vsGenerateSamples(args: VSToolArgs & { prompt: string; numSamples?: number; context?: string; parameters?: Record<string, any> }) {
+  private async vsGenerateSamples(
+    args: VSToolArgs & {
+      prompt: string;
+      numSamples?: number;
+      context?: string;
+      parameters?: Record<string, any>;
+    },
+  ) {
     const numSamples = args.numSamples || 3;
 
     // Simulate sample generation (in real implementation, this would call an LLM multiple times)
     const samples = [];
     for (let i = 0; i < numSamples; i++) {
-      samples.push(`Sample ${i + 1}: ${args.prompt} - Variation ${i + 1} with different approach and perspective.`);
+      samples.push(
+        `Sample ${i + 1}: ${args.prompt} - Variation ${i + 1} with different approach and perspective.`,
+      );
     }
 
     return {
-      content: [{
-        type: "text",
-        text: `Generated ${numSamples} VS Response Samples:\n\n${samples.map((sample, i) => `${i + 1}. ${sample}`).join('\n\n')}\n\nOriginal Prompt: ${args.prompt}\n${args.context ? `Context: ${args.context}\n` : ''}${args.parameters ? `Parameters: ${JSON.stringify(args.parameters, null, 2)}` : ''}`,
-      }],
+      content: [
+        {
+          type: "text",
+          text: `Generated ${numSamples} VS Response Samples:\n\n${samples.map((sample, i) => `${i + 1}. ${sample}`).join("\n\n")}\n\nOriginal Prompt: ${args.prompt}\n${args.context ? `Context: ${args.context}\n` : ""}${args.parameters ? `Parameters: ${JSON.stringify(args.parameters, null, 2)}` : ""}`,
+        },
+      ],
     };
   }
 
-  private async vsChainEvaluation(args: VSToolArgs & {
-    operation: string;
-    target: string;
-    task: string;
-    context?: string;
-    parameters?: Record<string, any>;
-    numSamples?: number;
-    criteria?: string[];
-  }) {
+  private async vsChainEvaluation(
+    args: VSToolArgs & {
+      operation: string;
+      target: string;
+      task: string;
+      context?: string;
+      parameters?: Record<string, any>;
+      numSamples?: number;
+      criteria?: string[];
+    },
+  ) {
     const operation = args.operation;
     const numSamples = args.numSamples || 3;
     const criteria = args.criteria || [
       "Clarity of communication",
       "Task alignment",
       "Parameter specificity",
-      "VS methodology adherence"
+      "VS methodology adherence",
     ];
 
     // Step 1: Inject VS prompt
-    let injectedPrompt = '';
-    if (operation === 'subagent') {
+    let injectedPrompt = "";
+    if (operation === "subagent") {
       const result = await this.vsInjectSubagent({
         subagent: args.target,
         task: args.task,
         context: args.context,
-        parameters: args.parameters
+        parameters: args.parameters,
       });
       injectedPrompt = result.content[0].text;
-    } else if (operation === 'command') {
+    } else if (operation === "command") {
       const result = await this.vsInjectCommand({
         command: args.target,
         purpose: args.task,
         context: args.context,
-        parameters: args.parameters
+        parameters: args.parameters,
       });
       injectedPrompt = result.content[0].text;
-    } else if (operation === 'skill') {
+    } else if (operation === "skill") {
       const result = await this.vsInjectSkill({
         skill: args.target,
         objective: args.task,
         context: args.context,
-        parameters: args.parameters
+        parameters: args.parameters,
       });
       injectedPrompt = result.content[0].text;
     }
@@ -580,29 +634,42 @@ ${args.parameters ? `**PARAMETERS:** ${JSON.stringify(args.parameters, null, 2)}
     const samplesResult = await this.vsGenerateSamples({
       prompt: injectedPrompt,
       numSamples: numSamples,
-      context: args.context
+      context: args.context,
     });
 
     // Step 3: Evaluate and select best
-    const sampleTexts = samplesResult.content[0].text.split('\n\n').filter(line =>
-      line.startsWith('Sample ') || line.startsWith('1. ') || line.startsWith('2. ') || line.startsWith('3. ')
-    ).map(line => line.replace(/^\d+\.\s*/, '').replace(/^Sample \d+:\s*/, ''));
+    const sampleTexts = samplesResult.content[0].text
+      .split("\n\n")
+      .filter(
+        (line) =>
+          line.startsWith("Sample ") ||
+          line.startsWith("1. ") ||
+          line.startsWith("2. ") ||
+          line.startsWith("3. "),
+      )
+      .map((line) =>
+        line.replace(/^\d+\.\s*/, "").replace(/^Sample \d+:\s*/, ""),
+      );
 
     const selectionResult = await this.vsSelectBestResponse({
       responses: sampleTexts,
       criteria: criteria,
-      context: args.context
+      context: args.context,
     });
 
     return {
-      content: [{
-        type: "text",
-        text: `VS Chain Evaluation Complete:\n\n1. INJECTED PROMPT:\n${injectedPrompt}\n\n2. GENERATED SAMPLES:\n${samplesResult.content[0].text}\n\n3. BEST RESPONSE SELECTION:\n${selectionResult.content[0].text}\n\nChain completed successfully using VS methodology.`,
-      }],
+      content: [
+        {
+          type: "text",
+          text: `VS Chain Evaluation Complete:\n\n1. INJECTED PROMPT:\n${injectedPrompt}\n\n2. GENERATED SAMPLES:\n${samplesResult.content[0].text}\n\n3. BEST RESPONSE SELECTION:\n${selectionResult.content[0].text}\n\nChain completed successfully using VS methodology.`,
+        },
+      ],
     };
   }
 
-  private async vsValidateMethodology(args: VSToolArgs & { response: string; expectedElements?: string[] }) {
+  private async vsValidateMethodology(
+    args: VSToolArgs & { response: string; expectedElements?: string[] },
+  ) {
     const expectedElements = args.expectedElements || [
       "TDD workflow adherence",
       "Security considerations",
@@ -612,22 +679,27 @@ ${args.parameters ? `**PARAMETERS:** ${JSON.stringify(args.parameters, null, 2)}
       "Documentation updates",
       "Accessibility compliance",
       "Performance implications",
-      "Package management standards"
+      "Package management standards",
     ];
 
     // Simulate validation (in real implementation, this would analyze the response)
-    const validationResults = expectedElements.map(element => {
+    const validationResults = expectedElements.map((element) => {
       const present = Math.random() > 0.3; // 70% chance of being present
-      return `${element}: ${present ? '✓ Present' : '✗ Missing'}`;
+      return `${element}: ${present ? "✓ Present" : "✗ Missing"}`;
     });
 
-    const complianceScore = validationResults.filter(r => r.includes('✓ Present')).length / expectedElements.length * 100;
+    const complianceScore =
+      (validationResults.filter((r) => r.includes("✓ Present")).length /
+        expectedElements.length) *
+      100;
 
     return {
-      content: [{
-        type: "text",
-        text: `VS Methodology Validation:\n\nResponse: "${args.response.substring(0, 150)}${args.response.length > 150 ? '...' : ''}"\n\nValidation Results:\n${validationResults.join('\n')}\n\nCompliance Score: ${complianceScore.toFixed(1)}%\n\n${complianceScore >= 80 ? '✅ High compliance with VS methodology' : complianceScore >= 60 ? '⚠️ Moderate compliance - some improvements needed' : '❌ Low compliance - significant VS methodology gaps'}`,
-      }],
+      content: [
+        {
+          type: "text",
+          text: `VS Methodology Validation:\n\nResponse: "${args.response.substring(0, 150)}${args.response.length > 150 ? "..." : ""}"\n\nValidation Results:\n${validationResults.join("\n")}\n\nCompliance Score: ${complianceScore.toFixed(1)}%\n\n${complianceScore >= 80 ? "✅ High compliance with VS methodology" : complianceScore >= 60 ? "⚠️ Moderate compliance - some improvements needed" : "❌ Low compliance - significant VS methodology gaps"}`,
+        },
+      ],
     };
   }
 }

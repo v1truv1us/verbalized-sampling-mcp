@@ -34,7 +34,14 @@ class VerbalizedSamplingMcpServer {
                 if (error instanceof types_js_1.McpError) {
                     throw error;
                 }
-                throw new types_js_1.McpError(types_js_1.ErrorCode.InternalError, `Tool execution failed: ${error instanceof Error ? error.message : String(error)}`);
+                const message = error instanceof Error
+                    ? error.message
+                    : String(error ?? "Unknown error");
+                // Unknown tool errors are treated as InvalidParams to surface clearer feedback
+                if (message.startsWith("Unknown VS tool")) {
+                    throw new types_js_1.McpError(types_js_1.ErrorCode.InvalidParams, `Unknown tool: ${message.replace("Unknown VS tool: ", "")}`);
+                }
+                throw new types_js_1.McpError(types_js_1.ErrorCode.InternalError, `Tool execution failed: ${message}`);
             }
         });
     }

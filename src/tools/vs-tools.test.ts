@@ -8,79 +8,100 @@ describe("VSTools", () => {
     vsTools = new VSTools();
   });
 
-  it("should have VS tools defined", () => {
+  it("should have correct tool count", () => {
     const tools = vsTools.getTools();
-    expect(tools).toBeDefined();
-    expect(tools.length).toBe(10); // 10 VS tools total
+    expect(tools.length).toBe(3);
+    expect(tools.some((t) => t.name === "vs_create_prompt")).toBe(true);
+    expect(tools.some((t) => t.name === "vs_process_response")).toBe(true);
+    expect(tools.some((t) => t.name === "vs_recommend_params")).toBe(true);
   });
 
-  it("should return the current VS prompt", async () => {
-    const result = await vsTools.handleTool("vs_get_prompt", {});
-    expect(result.content[0].type).toBe("text");
-    expect(result.content[0].text).toContain(
-      "Current Verbalized Sampling prompt",
-    );
+  describe("vs_create_prompt", () => {
+    it("should generate a standard prompt", async () => {
+      const result = await vsTools.handleTool("vs_create_prompt", {
+        topic: "Test Topic",
+        model_name: "gpt-4o",
+      });
+
+      const text = result.content[0].text;
+      expect(text).toContain("<instructions>");
+      expect(text).toContain("Generate 5 responses"); // GPT-4 default k=5
+      expect(text).toContain("probability of each response is less than 0.1"); // GPT-4 default tau=0.1
+      expect(text).toContain("Test Topic");
+    });
+
+    it("should adjust parameters for Claude", async () => {
+      const result = await vsTools.handleTool("vs_create_prompt", {
+        topic: "Test Topic",
+        model_name: "claude-3-5-sonnet",
+      });
+
+      const text = result.content[0].text;
+      expect(text).toContain("probability of each response is less than 0.08"); // Claude default tau=0.08
+    });
+
+    it("should use different template for CoT", async () => {
+      const result = await vsTools.handleTool("vs_create_prompt", {
+        topic: "Test Topic",
+        method: "cot",
+      });
+
+      const text = result.content[0].text;
+      expect(text).toContain("think step-by-step");
+    });
   });
 
-  it("should allow configuring a custom VS prompt", async () => {
-    const newPrompt = "Custom VS prompt for tests";
-    await vsTools.handleTool("vs_configure_prompt", { prompt: newPrompt });
-    const result = await vsTools.handleTool("vs_get_prompt", {});
-    expect(result.content[0].text).toContain(newPrompt);
+  describe("vs_process_response", () => {
+    const mockLlmOutput = `
+Here are the responses:
+<response>
+  <text>Common Answer</text>
+  <probability>0.9</probability>
+</response>
+<response>
+  <text>Rare Answer</text>
+  <probability>0.05</probability>
+</response>
+    `;
+
+    it("should select low probability response", async () => {
+      const result = await vsTools.handleTool("vs_process_response", {
+        llm_output: mockLlmOutput,
+        tau: 0.1,
+      });
+
+      const text = result.content[0].text;
+      expect(text).toContain("Rare Answer");
+      expect(text).not.toContain("Common Answer");
+      expect(text).toContain("[VS Metadata");
+    });
+
+    it("should fallback if no tail candidates", async () => {
+      // Both high prob
+      const highProbOutput = `
+<response><text>A</text><probability>0.9</probability></response>
+<response><text>B</text><probability>0.8</probability></response>
+      `;
+
+      const result = await vsTools.handleTool("vs_process_response", {
+        llm_output: highProbOutput,
+        tau: 0.1,
+      });
+
+      // Should pick lowest prob (B is 0.8 vs A is 0.9)
+      expect(result.content[0].text).toContain("B");
+    });
   });
 
-  it("should include vs_inject_subagent tool", () => {
-    const tools = vsTools.getTools();
-    const subagentTool = tools.find(
-      (tool) => tool.name === "vs_inject_subagent",
-    );
-    expect(subagentTool).toBeDefined();
-    expect(subagentTool?.description).toContain("subagent");
-  });
+  describe("vs_recommend_params", () => {
+    it("should return params for known model", async () => {
+      const result = await vsTools.handleTool("vs_recommend_params", {
+        model_name: "gemini-pro",
+      });
 
-  it("should include vs_inject_command tool", () => {
-    const tools = vsTools.getTools();
-    const commandTool = tools.find((tool) => tool.name === "vs_inject_command");
-    expect(commandTool).toBeDefined();
-    expect(commandTool?.description).toContain("command");
-  });
-
-  it("should include vs_inject_skill tool", () => {
-    const tools = vsTools.getTools();
-    const skillTool = tools.find((tool) => tool.name === "vs_inject_skill");
-    expect(skillTool).toBeDefined();
-    expect(skillTool?.description).toContain("skill");
-  });
-
-  it("should include configuration tools", () => {
-    const tools = vsTools.getTools();
-    const configTools = tools.filter(
-      (tool) => tool.name.startsWith("vs_") && tool.name.includes("prompt"),
-    );
-    expect(configTools.length).toBe(2); // configure and get prompt
-  });
-
-  it("should include evaluation tools", () => {
-    const tools = vsTools.getTools();
-    const evalTools = tools.filter(
-      (tool) =>
-        tool.name.includes("evaluate") ||
-        tool.name.includes("select") ||
-        tool.name.includes("validate"),
-    );
-    expect(evalTools.length).toBe(3); // evaluate, select, validate
-  });
-
-  it("should include generation tools", () => {
-    const tools = vsTools.getTools();
-    const genTools = tools.filter(
-      (tool) => tool.name.includes("generate") || tool.name.includes("chain"),
-    );
-    expect(genTools.length).toBe(2); // generate samples, chain evaluation
-  });
-
-  it("should have total of 10 tools", () => {
-    const tools = vsTools.getTools();
-    expect(tools.length).toBe(10);
+      const params = JSON.parse(result.content[0].text);
+      expect(params.k).toBe(7);
+      expect(params.tau).toBe(0.12);
+    });
   });
 });

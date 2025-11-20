@@ -1,7 +1,7 @@
 {
   "name": "verbalized-sampling-mcp",
-  "version": "1.0.0",
-  "description": "MCP server for injecting Verbalized Sampling prompts into subagents, commands, and skills",
+  "version": "1.1.0",
+  "description": "MCP server providing Verbalized Sampling prompt templates and response processing to mitigate mode collapse in LLMs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {

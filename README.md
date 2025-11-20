@@ -1,44 +1,39 @@
 # Verbalized Sampling MCP Server
 
-An MCP server that injects Verbalized Sampling (VS) prompts into subagent calls, command executions, and skill usage to ensure proper communication and alignment between all components of AI systems.
+A Model Context Protocol (MCP) server that provides Verbalized Sampling (VS) prompt templates and response processing utilities to mitigate mode collapse in LLM outputs.
 
 ## Overview
 
-Verbalized Sampling is a prompting methodology that ensures AI agents explicitly communicate their intent, provide clear context, specify parameters, and request confirmation before executing operations with subagents, commands, or skills.
+Verbalized Sampling is a training-free prompting strategy that improves LLM diversity by 2-3x. It works by asking the model to generate multiple responses with their probabilities, then sampling from the tails of the distribution to encourage creative, less common outputs.
 
-This MCP server provides tools to automatically inject VS prompts into these interactions, ensuring consistent and proper communication patterns across your AI ecosystem.
+This MCP server provides **three core tools** that work together to implement the VS methodology:
+
+1. **`vs_create_prompt`** - Generate optimized VS prompts for any task
+2. **`vs_process_response`** - Parse LLM responses and select diverse outputs
+3. **`vs_recommend_params`** - Get model-specific VS parameter recommendations
 
 ## Features
 
-### VS Injection Tools (3 tools)
+### Core VS Tools
 
-- **Subagent Injection**: Inject VS prompts into subagent calls
-- **Command Injection**: Inject VS prompts into command executions
-- **Skill Injection**: Inject VS prompts into skill usage
+- **Prompt Generation**: Creates research-backed VS prompts optimized for different models
+- **Response Processing**: Parses XML-formatted responses and implements tail sampling
+- **Model Optimization**: Provides parameter recommendations for 20+ current LLM models
 
-### VS Evaluation Tools (3 tools)
+### Model Support
 
-- **Response Evaluation**: Evaluate responses using VS criteria
-- **Best Response Selection**: Select optimal responses from multiple options
-- **Methodology Validation**: Validate VS methodology compliance
+Supports the latest models from all major providers:
 
-### VS Generation Tools (2 tools)
-
-- **Sample Generation**: Generate multiple response samples for comparison
-- **Chain Evaluation**: Complete VS workflow (inject → generate → evaluate → select)
-
-### Configuration Tools (2 tools)
-
-- **Prompt Configuration**: Customize the default VS prompt
-- **Prompt Retrieval**: Get the current VS prompt configuration
-
-**Total: 10 comprehensive VS tools**
+- **Anthropic**: Claude Sonnet 4.5, Haiku 4.5, Opus 4.1
+- **OpenAI**: GPT-5.1, GPT-5 mini/nano/pro, GPT-4.1 series, o4-mini
+- **Google**: Gemini 2.5 Pro/Flash, Gemini 1.5 Pro
+- **Meta/Open Source**: Llama 3.3, DeepSeek R1, Qwen3
 
 ## Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/verbalized-sampling-mcp.git
+git clone https://github.com/ferg-cod3s/verbalized-sampling-mcp.git
 cd verbalized-sampling-mcp
 
 # Install dependencies
@@ -53,35 +48,33 @@ npm start
 
 ## Usage
 
-### Basic Usage
+### Basic Workflow
 
-```bash
-# Start the server (Node)
-npm start
+1. **Generate VS Prompt**: Use `vs_create_prompt` to get an optimized prompt
+2. **Send to LLM**: Give the prompt to your LLM (via any interface)
+3. **Process Response**: Use `vs_process_response` to parse and select the best diverse output
 
-# Start the server (Bun)
-npm run start:bun
+### Example
 
-# Run the demo
-npm run demo
+```javascript
+// 1. Get VS prompt for a creative writing task
+const prompt = await mcp.callTool("vs_create_prompt", {
+  topic: "Write a short story about a robot learning to paint",
+  method: "cot", // Chain-of-thought for better reasoning
+  model_name: "claude-sonnet-4-5", // Optimized for Claude
+});
+
+// 2. Send prompt to your LLM and get response
+const llmResponse = await callYourLLM(prompt);
+
+// 3. Process the response to get diverse output
+const result = await mcp.callTool("vs_process_response", {
+  llm_output: llmResponse,
+  tau: 0.08, // Tail sampling threshold
+});
+
+console.log(result.selected); // The diverse story output
 ```
-
-### MCP Inspector
-
-```bash
-# Run MCP Inspector with Bun (default)
-npm run inspect
-
-# Run MCP Inspector with Node
-npm run inspect:node
-```
-
-Once Inspector is running, connect using the stdio transport. You can then:
-
-- List tools and explore their input schemas
-- Call `vs_get_prompt` to inspect the current VS methodology prompt
-- Use `vs_inject_subagent`, `vs_inject_command`, and `vs_inject_skill` to wrap subagent, command, and skill flows
-- Run `vs_chain_evaluation` for an end-to-end VS workflow (inject → generate → evaluate → select)
 
 ### MCP Integration
 
@@ -90,7 +83,7 @@ Add to your MCP client configuration:
 ```json
 {
   "mcpServers": {
-    "verbalized-sampling-mcp": {
+    "verbalized-sampling": {
       "command": "node",
       "args": ["/path/to/verbalized-sampling-mcp/dist/index.js"]
     }
@@ -100,231 +93,38 @@ Add to your MCP client configuration:
 
 ## Available Tools
 
-### VS Injection Tools
+### vs_create_prompt
 
-#### vs_inject_subagent
-
-Injects VS prompts into subagent calls.
+Generates a Verbalized Sampling prompt optimized for a specific model and task.
 
 **Parameters:**
 
-- `subagent` (string, required): Name/identifier of the subagent
-- `task` (string, required): Task to be performed
-- `context` (string, optional): Background context
-- `parameters` (object, optional): Parameters for the subagent
-- `customPrompt` (string, optional): Custom VS prompt
+- `topic` (string, required): The user's query or task
+- `method` (string, optional): VS strategy - "standard", "cot", or "multi-turn"
+- `model_name` (string, optional): Target model name for parameter optimization
 
-#### vs_inject_command
+**Returns:** A complete VS prompt string ready to send to an LLM.
 
-Injects VS prompts into command executions.
+### vs_process_response
 
-**Parameters:**
-
-- `command` (string, required): Command to execute
-- `purpose` (string, required): Expected outcome
-- `context` (string, optional): Execution context
-- `parameters` (object, optional): Command parameters
-- `customPrompt` (string, optional): Custom VS prompt
-
-#### vs_inject_skill
-
-Injects VS prompts into skill usage.
+Parses an LLM's XML response and selects the most diverse option using tail sampling.
 
 **Parameters:**
 
-- `skill` (string, required): Skill name/identifier
-- `objective` (string, required): Objective to achieve
-- `context` (string, optional): Usage constraints
-- `parameters` (object, optional): Skill parameters
-- `customPrompt` (string, optional): Custom VS prompt
+- `llm_output` (string, required): Raw text output from LLM containing `<response>` tags
+- `tau` (number, optional): Probability threshold for tail sampling (default: 0.10)
 
-### VS Evaluation Tools
+**Returns:** The selected diverse response with metadata.
 
-#### vs_evaluate_response
+### vs_recommend_params
 
-Evaluate a response using Verbalized Sampling criteria.
+Gets recommended VS parameters for a specific model.
 
 **Parameters:**
 
-- `response` (string, required): The response to evaluate
-- `criteria` (array, optional): Evaluation criteria to apply
-- `context` (string, optional): Context for evaluation
+- `model_name` (string, required): The model name to look up
 
-#### vs_select_best_response
-
-Select the best response from multiple options using VS methodology.
-
-**Parameters:**
-
-- `responses` (array, required): Array of responses to evaluate
-- `criteria` (array, optional): Selection criteria to apply
-- `context` (string, optional): Context for selection
-
-#### vs_validate_methodology
-
-Validate that a response follows proper VS methodology.
-
-**Parameters:**
-
-- `response` (string, required): The response to validate
-- `expectedElements` (array, optional): Expected VS methodology elements
-
-### VS Generation Tools
-
-#### vs_generate_samples
-
-Generate multiple response samples for comparison.
-
-**Parameters:**
-
-- `prompt` (string, required): The prompt to generate samples for
-- `numSamples` (number, optional): Number of samples to generate (default: 3)
-- `context` (string, optional): Context for generation
-- `parameters` (object, optional): Additional parameters
-
-#### vs_chain_evaluation
-
-Chain multiple VS operations: inject prompt, generate samples, evaluate, and select best.
-
-**Parameters:**
-
-- `operation` (string, required): Type of operation ("subagent", "command", "skill")
-- `target` (string, required): Target name/identifier
-- `task` (string, required): Task to be performed
-- `context` (string, optional): Context and background
-- `parameters` (object, optional): Parameters for the operation
-- `numSamples` (number, optional): Number of samples to generate (default: 3)
-- `criteria` (array, optional): Evaluation criteria for selection
-
-### VS Configuration Tools
-
-#### vs_configure_prompt
-
-Configure the default VS prompt.
-
-**Parameters:**
-
-- `prompt` (string, required): New default VS prompt
-
-#### vs_get_prompt
-
-Get the current default VS prompt.
-
-**Parameters:** None
-
-## VS Methodology Based on Global Development Rules
-
-The server implements Verbalized Sampling (VS) methodology following our comprehensive global development rules. The VS prompt incorporates:
-
-### Core Principles (Severity: Error)
-
-- **TDD Workflow**: Tests first, implement after, verify behavior
-- **Security**: Never commit secrets, validate inputs, least privilege
-- **Bug Fixes**: Analyze root cause, targeted solutions, thorough testing
-
-### Quality Standards (Severity: Warning)
-
-- **Code Simplicity**: Readable, maintainable, focused functions (10-30 lines)
-- **Testing**: AAA pattern, comprehensive coverage, mock dependencies
-- **Documentation**: Current README, API docs, usage examples
-
-### Compliance Requirements
-
-- **Accessibility**: WCAG 2.2 AA, keyboard navigation, screen reader support
-- **Performance**: Profile before optimizing, lazy loading, Core Web Vitals
-- **Package Management**: Standard managers, lock files, security audits
-
-### Default VS Prompt
-
-```
-You are using Verbalized Sampling (VS) methodology following our global development rules. When working with subagents, commands, or skills, always:
-
-TDD Workflow (Severity: Error):
-1. Write tests first - Create or update tests before implementing any functionality
-2. Implement after tests - Only write code after tests are in place
-3. Verify with tests - Run tests to ensure behavior matches expectations
-4. Refactor safely - Keep all tests green during refactoring
-
-Security (Severity: Error):
-5. Never commit secrets - Use environment variables for sensitive data
-6. Validate inputs - Sanitize and validate all user inputs
-7. Follow least privilege - Use minimal required permissions
-8. Encrypt sensitive data - Protect data at rest and in transit
-
-Bug Fixes (Severity: Error):
-9. Analyze root cause - Understand the problem thoroughly before fixing
-10. Targeted solutions - Provide precise, focused fixes
-11. Document fixes - Explain the root cause and implications
-12. Test thoroughly - Include tests that verify the fix works
-
-Code Quality (Severity: Warning):
-13. Prioritize readability - Write self-documenting, maintainable code
-14. Keep functions small - Target 10-30 lines, break down larger functions
-15. Follow SOLID principles - Single responsibility, open/closed, etc.
-16. DRY principle - Don't Repeat Yourself
-
-Testing Standards:
-17. Comprehensive coverage - Test happy paths, error paths, and edge cases
-18. Follow AAA pattern - Arrange, Act, Assert for unit tests
-19. Mock dependencies - Isolate tests from external systems
-20. Maintain test quality - Keep tests focused, atomic, and reliable
-
-Documentation:
-21. Document APIs - Keep README and API docs current
-22. Include examples - Provide usage examples and setup instructions
-23. Update regularly - Keep documentation synchronized with code
-
-Accessibility (Severity: Error):
-24. WCAG 2.2 AA compliance - Meet accessibility standards
-25. Keyboard navigation - Ensure all interactive elements are keyboard accessible
-26. Screen reader support - Use semantic HTML and ARIA labels
-27. Color contrast - Minimum 4.5:1 contrast ratio
-
-Package Management (Severity: Error):
-28. Use standard package managers - pnpm for Node.js, pip for Python, etc.
-29. Maintain lock files - Keep dependency versions pinned
-30. Regular audits - Check for security vulnerabilities regularly
-
-Performance (Severity: Warning):
-31. Profile before optimizing - Measure before making performance changes
-32. Lazy load resources - Load non-critical resources on demand
-33. Monitor Core Web Vitals - Track LCP, FID, CLS for web apps
-
-Request Confirmation: Please acknowledge that you understand this VS methodology and global development rules before proceeding with any operations.
-```
-
-## Example Usage
-
-### Subagent Injection
-
-```javascript
-// Before: Direct subagent call
-callSubagent("code-reviewer", { file: "auth.js" });
-
-// After: VS-injected subagent call
-const vsPrompt = await mcp.callTool("vs_inject_subagent", {
-  subagent: "code-reviewer",
-  task: "Review authentication logic for security vulnerabilities",
-  context: "Critical security component handling user login",
-  parameters: { file: "auth.js", focus: "security", strict: true },
-});
-// Result includes full VS prompt with confirmation requirements
-```
-
-### Command Injection
-
-```javascript
-// Before: Direct command execution
-runCommand("npm test");
-
-// After: VS-injected command execution
-const vsPrompt = await mcp.callTool("vs_inject_command", {
-  command: "npm test",
-  purpose: "Verify code quality and prevent regressions",
-  context: "Pre-deployment validation in CI/CD pipeline",
-  parameters: { coverage: true, verbose: true },
-});
-```
+**Returns:** JSON object with `k` (sample count), `tau` (threshold), and `temperature` values.
 
 ## Development
 
@@ -349,11 +149,23 @@ npm run typecheck
 
 ```
 src/
-├── index.ts              # Main MCP server
 ├── tools/
-│   └── vs-tools.ts       # VS injection tools
-└── types/                # TypeScript definitions
+│   ├── vs-tools.ts        # Main MCP tool implementations
+│   ├── prompts.ts         # VS prompt templates and formatting
+│   ├── sampler.ts         # Response parsing and selection logic
+│   └── constants.ts       # Model-specific parameter mappings
+└── index.ts               # MCP server setup
 ```
+
+## Scientific Foundation
+
+This implementation is based on the research paper ["Verbalized Sampling: How to Mitigate Mode Collapse and Unlock LLM Diversity"](https://arxiv.org/abs/2510.01171) by Zhang et al. (2025), which demonstrates that VS increases diversity by 1.6-2.1x while maintaining quality.
+
+The methodology works by:
+
+1. **Prompting for Probabilities**: Asking LLMs to verbalize probability estimates for their own outputs
+2. **Tail Sampling**: Selecting responses with low probabilities to encourage diversity
+3. **XML Structure**: Using structured output format for reliable parsing
 
 ## Contributing
 
@@ -369,5 +181,6 @@ MIT License - see LICENSE file for details.
 
 ## Related
 
+- [Verbalized Sampling Research](https://www.verbalized-sampling.com/)
 - [Model Context Protocol](https://modelcontextprotocol.io/)
-- [Verbalized Sampling Methodology](https://example.com/vs-methodology)
+- [Research Paper](https://arxiv.org/abs/2510.01171)

@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { VSTools } from "./vs-tools.js";
+import { formatPrompt } from "./prompts.js";
+import { getModelParams } from "./constants.js";
 
 describe("VSTools", () => {
   let vsTools: VSTools;
@@ -102,6 +104,83 @@ Here are the responses:
       const params = JSON.parse(result.content[0].text);
       expect(params.k).toBe(7);
       expect(params.tau).toBe(0.12);
+    });
+  });
+
+  describe("Research Alignment Validation", () => {
+    it("should generate exact Magic Prompt template from verbalized-sampling.com", async () => {
+      const result = await vsTools.handleTool("vs_create_prompt", {
+        topic: "Tell me a short story about a bear",
+        model_name: "claude-3-5-sonnet",
+      });
+
+      const prompt = result.content[0].text;
+
+      // Verify the exact structure from verbalized-sampling.com
+      expect(prompt).toContain("<instructions>");
+      expect(prompt).toContain("Generate 5 responses to the user query");
+      expect(prompt).toContain("each within a separate <response> tag");
+      expect(prompt).toContain("Each <response> must include a <text> and a numeric <probability>");
+      expect(prompt).toContain("Please sample at random from the tails of the distribution");
+      expect(prompt).toContain("such that the probability of each response is less than 0.08");
+      expect(prompt).toContain("</instructions>");
+      expect(prompt).toContain("Tell me a short story about a bear");
+    });
+
+    it("should use research-backed model parameters", async () => {
+      const params = getModelParams("claude-3-5-sonnet");
+
+      // Verify Claude parameters match research recommendations
+      expect(params.k).toBe(5);
+      expect(params.tau).toBe(0.08);
+      expect(params.temperature).toBe(1.0);
+    });
+
+    it("should parse XML responses with correct structure", async () => {
+      const xmlResponse = `
+<response>
+  <text>A creative story about a bear in the forest</text>
+  <probability>0.05</probability>
+</response>
+<response>
+  <text>A boring story about a bear sleeping</text>
+  <probability>0.95</probability>
+</response>
+      `;
+
+      const result = await vsTools.handleTool("vs_process_response", {
+        llm_output: xmlResponse,
+        tau: 0.1,
+      });
+
+      const response = result.content[0].text;
+
+      // Should select the low probability (tail) response
+      expect(response).toContain("A creative story about a bear in the forest");
+      expect(response).not.toContain("A boring story about a bear sleeping");
+      expect(response).toContain("[VS Metadata");
+      expect(response).toContain("Selected from 2 candidates");
+      expect(response).toContain("Threshold: 0.1");
+    });
+
+    it("should implement tail sampling correctly", async () => {
+      // Test with responses where only one meets the tau threshold
+      const xmlResponse = `
+<response><text>High prob response</text><probability>0.9</probability></response>
+<response><text>Medium prob response</text><probability>0.5</probability></response>
+<response><text>Low prob response</text><probability>0.05</probability></response>
+      `;
+
+      const result = await vsTools.handleTool("vs_process_response", {
+        llm_output: xmlResponse,
+        tau: 0.1,
+      });
+
+      const response = result.content[0].text;
+
+      // Should select the tail response (probability < 0.1)
+      expect(response).toContain("Low prob response");
+      expect(response).toContain("Selected from 3 candidates");
     });
   });
 });

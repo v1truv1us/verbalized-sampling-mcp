@@ -1,7 +1,4 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.VSSampler = void 0;
-class VSSampler {
+export class VSSampler {
     /**
      * Parses the raw LLM output containing XML tags.
      * Supports both strict XML and loose parsing for robustness.
@@ -78,5 +75,4 @@ class VSSampler {
         };
     }
 }
-exports.VSSampler = VSSampler;
 //# sourceMappingURL=sampler.js.map

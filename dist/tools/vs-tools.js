@@ -1,11 +1,8 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.VSTools = void 0;
-const constants_js_1 = require("./constants.js");
-const prompts_js_1 = require("./prompts.js");
-const sampler_js_1 = require("./sampler.js");
-class VSTools {
-    sampler = new sampler_js_1.VSSampler();
+import { getModelParams } from "./constants.js";
+import { formatPrompt } from "./prompts.js";
+import { VSSampler } from "./sampler.js";
+export class VSTools {
+    sampler = new VSSampler();
     tools = [
         {
             name: "vs_create_prompt",
@@ -19,7 +16,7 @@ class VSTools {
                     },
                     method: {
                         type: "string",
-                        enum: ["standard", "cot", "multi-turn"],
+                        enum: ["standard", "cot", "multi-turn", "research_standard", "creative_writing", "dialogue"],
                         description: "The VS prompting strategy to use. Defaults to 'standard'.",
                     },
                     model_name: {
@@ -85,8 +82,8 @@ class VSTools {
             throw new Error("Parameter 'topic' is required and must be a non-empty string");
         }
         const method = args.method || "standard";
-        const params = (0, constants_js_1.getModelParams)(args.model_name);
-        const prompt = (0, prompts_js_1.formatPrompt)(args.topic, method, params);
+        const params = getModelParams(args.model_name);
+        const prompt = formatPrompt(args.topic, method, params);
         return {
             content: [
                 {
@@ -117,7 +114,7 @@ class VSTools {
         };
     }
     recommendParams(args) {
-        const params = (0, constants_js_1.getModelParams)(args.model_name);
+        const params = getModelParams(args.model_name);
         return {
             content: [
                 {
@@ -128,5 +125,4 @@ class VSTools {
         };
     }
 }
-exports.VSTools = VSTools;
 //# sourceMappingURL=vs-tools.js.map

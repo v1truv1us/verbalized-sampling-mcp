@@ -31,13 +31,25 @@ Supports the latest models from all major providers:
 
 ## Installation
 
+### Option 1: Install from npm (Recommended)
+
+```bash
+npm install -g verbalized-sampling-mcp
+```
+
+### Option 2: Install from Source
+
 ```bash
 # Clone the repository
-git clone https://github.com/ferg-cod3s/verbalized-sampling-mcp.git
+git clone https://github.com/johnferguson/verbalized-sampling-mcp.git
 cd verbalized-sampling-mcp
 
 # Install dependencies
 npm install
+
+# Configure environment variables (optional)
+cp .env.example .env.development
+# Edit .env.development with your Sentry DSN and other settings
 
 # Build the project
 npm run build
@@ -46,7 +58,52 @@ npm run build
 npm start
 ```
 
+## Sentry Monitoring
+
+This server includes comprehensive Sentry monitoring for production observability:
+
+### Features
+- **Performance Monitoring**: 100% trace sampling for detailed performance insights
+- **Error Tracking**: MCP-specific error categorization and context
+- **Custom Metrics**: VS tool execution times, success rates, confidence scores
+- **Health Monitoring**: Server uptime, memory usage, connection tracking
+
+### Configuration
+The server automatically detects environment and configures monitoring accordingly:
+
+- **Development**: Full tracing with local error handling
+- **Production**: Optimized performance with comprehensive error tracking
+
+### Environment Variables
+```bash
+# Required
+SENTRY_DSN=https://your-dsn@sentry.io/project-id
+SENTRY_ENVIRONMENT=development|production
+
+# MCP-specific tags (automatically added to all events)
+MCP_SERVER_NAME=verbalized-sampling-mcp
+MCP_TRANSPORT_TYPE=stdio
+MCP_TOOL_COUNT=4
+MCP_CLIENT_INFO=vscode-extension@1.0.0
+```
+
+### Monitoring Dashboard
+View real-time metrics and errors at: [Sentry Dashboard](https://sentry.fergify.work)
+
+For detailed monitoring setup and procedures, see [OBSERVABILITY.md](./OBSERVABILITY.md).
+
 ## Usage
+
+### Quick Start
+
+```bash
+# Install and start
+npm install -g verbalized-sampling-mcp
+verbalized-sampling-mcp
+
+# In another terminal, test with MCP Inspector
+npx @modelcontextprotocol/inspector node dist/index.js
+```
 
 ### Basic Workflow
 
@@ -54,31 +111,111 @@ npm start
 2. **Send to LLM**: Give the prompt to your LLM (via any interface)
 3. **Process Response**: Use `vs_process_response` to parse and select the best diverse output
 
-### Example
+### Examples
+
+#### Example 1: Creative Writing with Claude
 
 ```javascript
-// 1. Get VS prompt for a creative writing task
-const prompt = await mcp.callTool("vs_create_prompt", {
+// Generate VS prompt for creative writing
+const promptResult = await mcp.callTool("vs_create_prompt", {
   topic: "Write a short story about a robot learning to paint",
-  method: "cot", // Chain-of-thought for better reasoning
-  model_name: "claude-sonnet-4-5", // Optimized for Claude
+  method: "creative_writing", // Optimized for creative tasks
+  model_name: "claude-sonnet-4-5"
 });
 
-// 2. Send prompt to your LLM and get response
-const llmResponse = await callYourLLM(prompt);
+// Send to Claude and get response
+const claudeResponse = await callClaude(promptResult.content[0].text);
 
-// 3. Process the response to get diverse output
+// Process for diverse selection
+const storyResult = await mcp.callTool("vs_process_response", {
+  llm_output: claudeResponse,
+  tau: 0.08 // Model-specific threshold
+});
+
+console.log(storyResult.content[0].text); // Selected diverse story
+```
+
+#### Example 2: Technical Documentation with GPT-5
+
+```javascript
+// Get model-specific parameters first
+const params = await mcp.callTool("vs_recommend_params", {
+  model_name: "gpt-5"
+});
+// Returns: {"k": 10, "tau": 0.05, "temperature": 1.1}
+
+// Generate technical explanation prompt
+const promptResult = await mcp.callTool("vs_create_prompt", {
+  topic: "Explain quantum computing in simple terms",
+  method: "cot", // Chain-of-thought for complex topics
+  model_name: "gpt-5"
+});
+
+// Process GPT's XML response
 const result = await mcp.callTool("vs_process_response", {
-  llm_output: llmResponse,
-  tau: 0.08, // Tail sampling threshold
+  llm_output: gptResponse,
+  tau: params.tau // Use research-optimized threshold
+});
+```
+
+#### Example 3: Dialogue Generation
+
+```javascript
+// Generate diverse dialogue responses
+const promptResult = await mcp.callTool("vs_create_prompt", {
+  topic: "Write a conversation between a human and AI about climate change",
+  method: "dialogue", // Specialized for conversation
+  model_name: "gemini-2.5-pro"
 });
 
-console.log(result.selected); // The diverse story output
+// Get multiple dialogue options
+const dialogueResult = await mcp.callTool("vs_process_response", {
+  llm_output: geminiResponse,
+  tau: 0.12 // Gemini-specific threshold
+});
+```
+
+#### Example 4: Batch Processing
+
+```javascript
+// Process multiple responses efficiently
+const responses = [
+  "<response><text>Option A</text><probability>0.15</probability></response>",
+  "<response><text>Option B</text><probability>0.07</probability></response>",
+  "<response><text>Option C</text><probability>0.03</probability></response>"
+];
+
+for (const response of responses) {
+  const result = await mcp.callTool("vs_process_response", {
+    llm_output: response,
+    tau: 0.10 // Standard threshold
+  });
+  console.log(`Selected: ${result.content[0].text}`);
+}
 ```
 
 ### MCP Integration
 
-Add to your MCP client configuration:
+#### Claude Desktop (Recommended)
+
+1. **Install from npm**:
+```bash
+npm install -g verbalized-sampling-mcp
+```
+
+2. **Add to Claude Desktop**:
+   - Open Claude Desktop → Settings → Developer → Edit MCP Servers
+   - Add new server:
+     ```json
+     {
+       "name": "verbalized-sampling-mcp",
+       "command": "verbalized-sampling-mcp",
+       "args": []
+     }
+     ```
+   - Restart Claude Desktop
+
+#### Other MCP Clients
 
 ```json
 {
@@ -89,6 +226,18 @@ Add to your MCP client configuration:
     }
   }
 }
+```
+
+#### Environment Variables (Optional)
+
+```bash
+# Sentry monitoring (recommended for production)
+export SENTRY_DSN="your-dsn@sentry.io/project-id"
+export SENTRY_ENVIRONMENT="production"
+
+# Or create .env file
+echo "SENTRY_DSN=your-dsn@sentry.io/project-id" > .env
+echo "SENTRY_ENVIRONMENT=production" >> .env
 ```
 
 ## Available Tools
@@ -126,6 +275,38 @@ Gets recommended VS parameters for a specific model.
 
 **Returns:** JSON object with `k` (sample count), `tau` (threshold), and `temperature` values.
 
+## MCP Server Details
+
+### Server Configuration
+
+The server runs on **stdio transport** and provides these MCP tools:
+
+| Tool | Description | Parameters |
+|------|-------------|-----------|
+| `vs_create_prompt` | Generate optimized VS prompts | `topic` (required), `method`, `model_name` |
+| `vs_process_response` | Parse XML responses and select diverse output | `llm_output` (required), `tau` |
+| `vs_recommend_params` | Get model-specific VS parameters | `model_name` (required) |
+
+### VS Methods Available
+
+| Method | Description | Best For |
+|--------|-------------|-----------|
+| `standard` | Basic VS prompting | General use |
+| `cot` | Chain-of-thought reasoning | Complex tasks |
+| `multi-turn` | Progressive diversity building | Conversations |
+| `research_standard` | Official research format | Research compliance |
+| `creative_writing` | Optimized for creativity | Stories, poems |
+| `dialogue` | Varied tone/style | Conversations |
+
+### Model Support
+
+Supports 20+ models with optimized parameters:
+
+**Anthropic**: Claude Sonnet 4.5, Haiku 4.5, Opus 4.1
+**OpenAI**: GPT-5, GPT-5 mini/nano/pro, GPT-4.1 series, o4-mini  
+**Google**: Gemini 2.5 Pro/Flash, Gemini 1.5 Pro
+**Meta/Open Source**: Llama 3.3, DeepSeek R1, Qwen3
+
 ## Development
 
 ```bash
@@ -135,8 +316,11 @@ npm run dev
 # Run tests
 npm test
 
-# Lint code
-npm run lint
+# Test Sentry integration
+npm run sentry:test
+
+# Lint and fix code
+npm run lint:fix
 
 # Format code
 npm run format
@@ -144,6 +328,58 @@ npm run format
 # Type checking
 npm run typecheck
 ```
+
+## Production Deployment
+
+### Environment Setup
+
+```bash
+# Production environment
+export NODE_ENV=production
+export SENTRY_DSN="your-dsn@sentry.io/project-id"
+export SENTRY_ENVIRONMENT=production
+
+# Start with monitoring
+npm start
+```
+
+### Docker Deployment
+
+```dockerfile
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY dist ./dist/
+EXPOSE 3000
+CMD ["npm", "start"]
+```
+
+### Monitoring
+
+The server includes comprehensive Sentry monitoring:
+
+- **Performance Metrics**: 100% trace sampling
+- **Error Tracking**: MCP-specific error categorization  
+- **Custom Metrics**: VS tool execution times, success rates
+- **Health Monitoring**: Server uptime, memory usage, connections
+
+View metrics at: [Sentry Dashboard](https://sentry.fergify.work)
+
+### Testing Sentry Integration
+
+```bash
+# Test error reporting
+npm run sentry:test
+
+# Start server with monitoring
+npm run start
+
+# Use MCP Inspector to test tools and verify metrics
+npx @modelcontextprotocol/inspector node dist/index.js
+```
+
+All tool executions, errors, and performance metrics are automatically sent to Sentry with MCP-specific context.
 
 ## Architecture
 

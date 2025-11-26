@@ -1,14 +1,12 @@
 #!/usr/bin/env node
-"use strict";
 /**
  * Demo script for Verbalized Sampling MCP Server
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-const vs_tools_js_1 = require("./tools/vs-tools.js");
+import { VSTools } from "./tools/vs-tools.js";
 async function demo() {
     console.log("🗣️ Verbalized Sampling MCP Server Demo");
     console.log("=====================================\n");
-    const vsTools = new vs_tools_js_1.VSTools();
+    const vsTools = new VSTools();
     console.log("📋 Available VS Tools:");
     vsTools.getTools().forEach(tool => {
         console.log(`  • ${tool.name}: ${tool.description}`);

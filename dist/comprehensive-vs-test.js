@@ -1,15 +1,13 @@
 #!/usr/bin/env node
-"use strict";
 /**
  * Comprehensive VS Methodology Test
  * Tests the complete Verbalized Sampling workflow
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-const vs_tools_js_1 = require("./tools/vs-tools.js");
+import { VSTools } from "./tools/vs-tools.js";
 async function comprehensiveVSTest() {
     console.log("🧪 Comprehensive Verbalized Sampling Methodology Test");
     console.log("====================================================\n");
-    const vsTools = new vs_tools_js_1.VSTools();
+    const vsTools = new VSTools();
     console.log("📋 Testing VS Methodology Compliance...\n");
     // Test 1: VS Prompt Retrieval
     console.log("1. 📖 VS Prompt Retrieval:");

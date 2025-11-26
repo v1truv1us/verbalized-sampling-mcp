@@ -19,12 +19,12 @@ export class VSTools {
             description:
               "The user's query or task (e.g., 'Tell me a joke about AI')",
           },
-          method: {
-            type: "string",
-            enum: ["standard", "cot", "multi-turn"],
-            description:
-              "The VS prompting strategy to use. Defaults to 'standard'.",
-          },
+            method: {
+              type: "string",
+              enum: ["standard", "cot", "multi-turn", "research_standard", "creative_writing", "dialogue"],
+              description:
+                "The VS prompting strategy to use. Defaults to 'standard'.",
+            },
           model_name: {
             type: "string",
             description:

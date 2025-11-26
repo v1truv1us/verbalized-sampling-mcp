@@ -1,15 +1,11 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.MODEL_PARAMS = exports.DEFAULT_PARAMS = void 0;
-exports.getModelParams = getModelParams;
 // Default parameters if model is unknown
-exports.DEFAULT_PARAMS = {
+export const DEFAULT_PARAMS = {
     k: 5,
     tau: 0.1,
     temperature: 1.0, // High temp to encourage diversity in generation
 };
 // Mappings for various model families including current and latest models from 2025
-exports.MODEL_PARAMS = {
+export const MODEL_PARAMS = {
     // Anthropic Models (tend to need lower threshold) - Latest as of Oct 2025
     claude: { k: 5, tau: 0.08, temperature: 1.0 },
     "claude-sonnet-4-5": { k: 5, tau: 0.08, temperature: 1.0 },
@@ -55,19 +51,19 @@ exports.MODEL_PARAMS = {
     qwen3: { k: 5, tau: 0.1, temperature: 1.0 },
     "qwen3-235b": { k: 5, tau: 0.1, temperature: 1.0 },
 };
-function getModelParams(modelName) {
+export function getModelParams(modelName) {
     if (!modelName)
-        return exports.DEFAULT_PARAMS;
+        return DEFAULT_PARAMS;
     const normalized = modelName.toLowerCase();
     // Exact match
-    if (exports.MODEL_PARAMS[normalized]) {
-        return exports.MODEL_PARAMS[normalized];
+    if (MODEL_PARAMS[normalized]) {
+        return MODEL_PARAMS[normalized];
     }
     // Partial match (e.g., "claude-3-5-sonnet-20240620" -> "claude-3-5-sonnet")
-    const key = Object.keys(exports.MODEL_PARAMS).find((k) => normalized.includes(k));
+    const key = Object.keys(MODEL_PARAMS).find((k) => normalized.includes(k));
     if (key) {
-        return exports.MODEL_PARAMS[key];
+        return MODEL_PARAMS[key];
     }
-    return exports.DEFAULT_PARAMS;
+    return DEFAULT_PARAMS;
 }
 //# sourceMappingURL=constants.js.map
